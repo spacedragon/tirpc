@@ -1,6 +1,6 @@
 const jsonrpc = "2.0";
 
-import debug from "./debug"
+var debug = require("debug")("tirpc");
 
 
 class RpcClient {

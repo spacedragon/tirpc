@@ -3,6 +3,7 @@
  */
 import {serverhandler, newclient} from "./index.js"
 
+var debug = require("debug")("socketio-rpc");
 
 export function socketioServer(io, impl) {
 
@@ -29,10 +30,10 @@ export function socketioClient(io, methods) {
 
     return new Promise((resolve, reject) => {
         nsp.on("connect", ()=> {
-            console.log("connected");
+            debug("connected");
             var proxy = newclient(methods);
             proxy.request = (data) => {
-                console.log("publish", topic, data);
+                debug("publish", topic, data);
                 nsp.emit('message',data)
             };
 

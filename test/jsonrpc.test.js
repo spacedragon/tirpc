@@ -2,6 +2,8 @@ import {serverhandler, newclient, clientproxy} from "../src/index.js";
 
 import {assert} from "chai"
 
+var debug = require('debug')('test');
+
 
 suite('1+1', function () {
     var impl = {
@@ -37,13 +39,14 @@ suite('1+1', function () {
     test("callback",function(done){
         impl.callback = (func) => {
             func("ok").then(ret => {
-                console.log(ret);
-                assert.equal(ret,"callback value")
+                debug("result is ",ret);
+                assert.equal(ret,"callback value");
+                done();
+
             });
             return new Promise((resolve,reject)=> {
                 setTimeout(()=> {
                     resolve();
-                    done();
                 },1000)
             })
         };

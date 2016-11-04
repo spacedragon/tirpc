@@ -1,7 +1,9 @@
 import mqtt from "mqtt"
 import {serverhandler, newclient} from "./index.js"
 
-import debug from "./debug"
+
+var debug = require("debug")("mqtt-rpc");
+
 
 export function mqttRPCServer(impl, host) {
     var client = mqtt.connect(host);
