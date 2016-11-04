@@ -1,5 +1,5 @@
 import {assert} from "chai"
-import {serverhandler, newclient, clientproxy} from "../../src/rpc/jsonrpc";
+import {serverhandler, newclient, clientproxy} from "../src/index";
 const http = require('http');
 var fetch = require('node-fetch');
 

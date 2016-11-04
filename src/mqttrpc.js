@@ -1,5 +1,5 @@
 import mqtt from "mqtt"
-import {serverhandler, newclient} from "./jsonrpc"
+import {serverhandler, newclient} from "./index.js"
 
 import debug from "./debug"
 

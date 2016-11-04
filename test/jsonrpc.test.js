@@ -1,4 +1,4 @@
-import {serverhandler, newclient, clientproxy} from "../../src/rpc/jsonrpc";
+import {serverhandler, newclient, clientproxy} from "../src/index.js";
 
 import {assert} from "chai"
 

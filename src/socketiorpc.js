@@ -1,7 +1,7 @@
 /**
  * Created by draco on 2016/11/3.
  */
-import {serverhandler, newclient} from "./jsonrpc"
+import {serverhandler, newclient} from "./index.js"
 
 
 export function socketioServer(io, impl) {
