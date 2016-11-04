@@ -1,4 +1,4 @@
-import {serverhandler, newclient, clientproxy} from "../src/index.js";
+import {serverhandler, newclient} from "../src/index.js";
 
 import {assert} from "chai"
 

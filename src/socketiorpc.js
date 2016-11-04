@@ -31,17 +31,17 @@ export function socketioClient(io, methods) {
     return new Promise((resolve, reject) => {
         nsp.on("connect", ()=> {
             debug("connected");
-            var proxy = newclient(methods);
-            proxy.request = (data) => {
+            var client = newclient(methods);
+            client.request = (data) => {
                 debug("publish", topic, data);
                 nsp.emit('message',data)
             };
 
 
-            newclient.on('message_reply', function (message) {
-                proxy.onResponse(message)
+            nsp.on('message_reply', function (message) {
+                client.onResponse(message)
             });
-            resolve(proxy)
+            resolve(client)
         });
         nsp.on('connect_error',function(err){
             reject(err)
