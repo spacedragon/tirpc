@@ -1,4 +1,3 @@
-const jsonrpc = "2.0";
 
 var debug = require("debug")("tirpc");
 
@@ -11,15 +10,15 @@ class RpcClient {
         this.callbacks = {};
     }
 
-    nextId() {
+    _nextId() {
         return this.curid++;
     }
 
-    setCallback(id, callback) {
+    _setCallback(id, callback) {
         this.callbacks[id] = callback
     }
 
-    clearCallback(id) {
+    _clearCallback(id) {
         delete this.callbacks[id];
     }
 
@@ -29,24 +28,31 @@ class RpcClient {
 
     onResponse(response) {
         debug("onResponse ", response);
-        var cb = this.callbacks[response.id];
-        if (cb) {
-            cb(response);
-            delete this.callbacks[response.id]
+        var cb;
+        if(response.callback!=null){
+            cb = this.callbacks[response.callback];
+            if(cb){
+                cb(response);
+            }
+        }else {
+            cb = this.callbacks[response.id];
+            if (cb) {
+                cb(response);
+                delete this.callbacks[response.id]
+            }
         }
+
     }
 
-    callbackReturn(callbackFunc, json) {
+    _callbackReturn(callbackFunc, json) {
         var sendResult = (r) => {
             this.request({
-                jsonrpc,
                 id: json.id,
                 result: r
             })
         };
         var sendError = (e) => {
             this.request({
-                jsonrpc: "2.0",
                 error: {
                     code: -32000,
                     message: "Server error",
@@ -57,12 +63,12 @@ class RpcClient {
         };
 
         try {
+
             var result = callbackFunc(...json.params);
             if (isPromise(result)) {
                 result.then(sendResult.bind(this), sendError.bind(this))
             } else {
                 this.request({
-                    jsonrpc,
                     id: json.id,
                     result: result
                 });
@@ -72,24 +78,24 @@ class RpcClient {
         }
     }
 
-    call(method, ...args) {
+    _method_call(method, ...args) {
 
         var params = Array.from(args);
         var callbackIndices = [];
         for (var i = 0; i < args.length; i++) {
             const arg = args[i];
             if (typeof(arg) == "function") {
-                var id = this.nextId();
+                var id = this._nextId();
                 callbackIndices.push(i);
 
                 params[i] = id;
-                this.setCallback(id, (json)=> {
-                    this.callbackReturn(arg, json);
+                this._setCallback(id, (json)=> {
+                    this._callbackReturn(arg, json);
                 });
             }
         }
         var req = {
-            id: this.nextId(),
+            id: this._nextId(),
             method,
             params: params,
             from: this.clientId,
@@ -98,13 +104,13 @@ class RpcClient {
 
         var cleanCallbacks = (ret) => {
             debug("client clean", req.id, callbackIndices);
-            callbackIndices.forEach(funcid => this.clearCallback(funcid));
-            this.clearCallback(req.id);
+            callbackIndices.forEach(funcid => this._clearCallback(funcid));
+            this._clearCallback(req.id);
             return ret
         };
 
         var p = new Promise((resolve, reject)=> {
-            this.setCallback(req.id, (ret)=> {
+            this._setCallback(req.id, (ret)=> {
                 if (ret.error) {
                     reject(ret)
                 } else {
@@ -131,91 +137,11 @@ export function newclient(methods, clientId) {
 
     for (var i = 0; i < methods.length; i++) {
         var m = methods[i];
-        ret[m] = ret.call.bind(ret, m)
+        ret[m] = ret._method_call.bind(ret, m)
     }
     return ret;
 }
 
-
-/**
- *
- * @param handler  interface {
- *                    request(data)   method for sending data remotely
-   *                  onResponse(id,callback)   reply callback
-       *              clearReply(id)   clear the callback
- *                 }
- * @returns proxied clientproxy
- */
-/*export function clientproxy() {
- var Proxy = require('harmony-proxy');
-
- let proxy = {
- get(target, propKey, receiver) {
- const origin = target[propKey];
- if (origin) {
- return origin;
- } else {
- if (propKey == "request") {
- throw "newclient has not implement " + propKey + " yet";
- } else if (propKey == "then") {
- return undefined;
- } else {
- return function (...args) {
- var last = args[args.length - 1];
-
- if (typeof(last) == "function") {
- var callback = args.pop();
- var json = {
- id: target.nextId(),
- method: propKey,
- params: args
- };
- target.setCallback(json.id, (ret)=> {
- if (ret.error) {
- callback(ret.error, ret.data)
- } else {
- callback(null, ret.result)
- }
- });
- target.request(json);
- return json.id;
- } else {
- target.request({
- jsonrpc,
- method: propKey,
- params: args
- });
- return null;
- }
- }
- }
- }
- }
- };
-
- return new Proxy({
- curid: 0,
- nextId(){
- return this.curid++;
- }, callbacks: {},
- setCallback: function (id, callback) {
- this.callbacks[id] = callback
- },
- clearCallback: function (id) {
- delete this.callbacks[id];
- },
- request(data){
- throw "newclient should override this method."
- },
- onResponse: function (json) {
- var cb = this.callbacks[json.id];
- if (cb) {
- cb(json);
- delete this.callbacks[json.id]
- }
- }
- }, proxy)
- }*/
 
 
 function isPromise(obj) {
@@ -226,16 +152,20 @@ function isPromise(obj) {
 class ServerHandler {
 
     constructor(impl) {
-        this.impl = impl
+        this.impl = impl;
         this.callbackReturns = {};
+        this.curid=0;
+    }
+    _nextId() {
+        return this.curid++;
     }
 
     response(data, ref) {
-        throw "newclient should override this method."
+        throw "server should override this method."
     }
 
     onRequest(data, ref) {
-        debug("onRequest", data, ref);
+        debug("onRequest", data);
 
         if (data.method) {
             this._handleRequest(data, ref);
@@ -265,12 +195,13 @@ class ServerHandler {
 
 
     _sendCallback(callbackId, ...args) {
+        var id = this._nextId();
         var p = new Promise( (resolve, reject) => {
-            this.callbackReturns[callbackId] = [resolve, reject];
+            this.callbackReturns[id] = [resolve, reject];
         });
         this.response({
-            jsonrpc,
-            id: callbackId,
+            id,
+            callback: callbackId,
             params: args
         });
         return p;
@@ -278,7 +209,6 @@ class ServerHandler {
 
     _serverError(reason,id, ref) {
         this.response({
-            jsonrpc: "2.0",
             error: {
                 code: -32000,
                 message: "Server error",
@@ -293,7 +223,6 @@ class ServerHandler {
             this.response({
                 id: data.id,
                 error: {
-                    jsonrpc,
                     code: -32601,
                     message: "Method not found"
                 }
@@ -304,7 +233,6 @@ class ServerHandler {
     _sendResult(value, data, ref) {
         debug("sendresult ", value);
         this.response({
-            jsonrpc,
             result: value,
             id: data.id
         }, ref);

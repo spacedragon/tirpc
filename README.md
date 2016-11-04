@@ -1,5 +1,5 @@
-# tirpc
-transport-layer independent  rpc framework
+# tiRpc
+a transport-layer independent  RPC framework
 
 ## Installation
 
@@ -10,11 +10,11 @@ $ npm install tirpc
 ## Usage
 
    
-  tirpc 是一个对于传输层不作限制的rpc 框架 , 使用者需要给它提供传输层的方法来进行实际的网络调用。 主要是 request, onRequest, response , onResponse 这4个方法。
+  tiRpc 是一个对于传输层不作限制的rpc 框架 , 使用者需要给它提供传输层的方法来进行实际的网络调用。 主要是 request, onRequest, response , onResponse 这4个方法。
   
   Google translate:
   `
-  This is an unlimited rpc framework for the transport layer, the user needs to provide it with the transport layer methods to the actual network call.
+  This is an unlimited rpc framework for the transport layer, the user needs to provide it with the transport layer methods to the actual network _method_call.
   These methods are  request, onRequest, response and onResponse.
   ` 
     
@@ -50,7 +50,7 @@ $ npm install tirpc
             })
 ```
 
-### a more useful example - http:
+### A more useful example - http:
 
 ```js
 
@@ -90,15 +90,28 @@ $ npm install tirpc
 ```
 
 
-tiRpc also support bidirection Rpc, we need bidirection protocoal , take socket io for example:
+tiRpc supports bidirectional async rpc ,  take socket io for example:
 
-### bidirection example - socket.io :
+### Example - socket.io :
 ```js
 
-    var io = require('socket.io')(80);
+    var impl = {
+        callback(clientFunc) {  // this api receives a callback function
+            for (var i = 4; i >= 0; i--) {
+                clientFunc(i).then(msgFromClient => {       // the client callback function can be called repeatedly , until this api returns.
+                    debug("msg from client,",msgFromClient)   
+                })
+            }
+            return new Promise((resolve,reject)=> {   // async support by Promise   
+                setTimeout(resolve,  1000)            // you can never call resolve() 
+            });
+        }
+    };
+    var server = serverhandler(impl);
+    
+    var io = require('socket.io')(8080);
     var nsp = io.of("/jsonrpc");   // optional
     
-    var server = serverhandler(impl);
 
     
     nsp.on('connection', function (socket) {
@@ -111,27 +124,34 @@ tiRpc also support bidirection Rpc, we need bidirection protocoal , take socket 
             socket.emit('message_reply', data) // use 'message_reply' event for response
     };
     
-    nsp.on("connect", ()=> {
-         var client = newclient(methods);
-         client.request = (data) => {
-             debug("publish", topic, data);
-             nsp.emit('message',data)
-         };
+     var socket = require('socket.io-client')("http://localhost:5000/tirpc");
+     socket.on("connect", ()=> {
+
+        client.request = (data) => {
+            debug("emitting", data);
+            socket.emit('message', data)
+        };
+
+        socket.on('message_reply', function (message) {  // response is coming.
+            client.onResponse(message)
+        });
+        debug("client initiated.");
         
+        client.callback(count => {     // call the server api.
+                debug("counter,", count);
+                return "count " + count;   // this will return to server.
+        });
         
-         nsp.on('message_reply', function (message) {  // response is comming.
-             client.onResponse(message)
-         });
-         resolve(client)
-    });
+     });  
     
 ```
 
-
+## Future
+    * client lifecycle managerment ? 
 
 ## Authors
 
- - spacedragon
+ - spacedragon &lt;allendragon@gmail.com&gt
 
 ## License
 

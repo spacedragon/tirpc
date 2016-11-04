@@ -16,8 +16,7 @@
     "url": "https://github.com/spacedragon/tirpc/issues"
   },
   "homepage": "https://github.com/spacedragon/tirpc#readme",
-  "main":"lib/index.js",
-
+  "main": "lib/index.js",
   "devDependencies": {
     "babel": "^6.5.2",
     "babel-cli": "^6.18.0",
@@ -30,8 +29,9 @@
     "babel-plugin-transform-strict-mode": "^6.18.0",
     "chai": "^3.5.0",
     "mocha": "^3.1.2",
-    "node-fetch": "^1.6.3",
     "mqtt": "^2.0.1",
-    "socket.io": "^1.5.1"
+    "node-fetch": "^1.6.3",
+    "socket.io": "^1.5.1",
+    "socket.io-client": "^1.5.1"
   }
 }
