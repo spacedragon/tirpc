@@ -194,7 +194,7 @@ class ServerHandler {
     }
 
 
-    _sendCallback(callbackId, ...args) {
+    _sendCallback(callbackId,ref, ...args) {
         var id = this._nextId();
         var p = new Promise( (resolve, reject) => {
             this.callbackReturns[id] = [resolve, reject];
@@ -203,7 +203,7 @@ class ServerHandler {
             id,
             callback: callbackId,
             params: args
-        });
+        },ref);
         return p;
     }
 
@@ -254,7 +254,7 @@ class ServerHandler {
         if (data.callbacks && data.callbacks.length > 0) {
             for (var i = 0; i < data.callbacks.length; i++) {
                 var callbackId = data.callbacks[i];
-                data.params[i] = this._sendCallback.bind(this, callbackId);
+                data.params[i] = this._sendCallback.bind(this, callbackId,ref);
                 callbackIds.push(callbackId);
             }
         }
